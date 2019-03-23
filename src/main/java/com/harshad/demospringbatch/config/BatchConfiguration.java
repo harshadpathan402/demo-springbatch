@@ -7,6 +7,7 @@ import org.springframework.batch.core.configuration.annotation.EnableBatchProces
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
+import org.springframework.batch.item.database.JpaItemWriter;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
 import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
@@ -15,15 +16,20 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 
+import javax.persistence.EntityManagerFactory;
+
 @Configuration
 @EnableBatchProcessing
 public class BatchConfiguration {
 
     @Autowired
-    public JobBuilderFactory jobBuilderFactory;
+    private JobBuilderFactory jobBuilderFactory;
 
     @Autowired
-    public StepBuilderFactory stepBuilderFactory;
+    private StepBuilderFactory stepBuilderFactory;
+
+    @Autowired
+    private EntityManagerFactory entityManagerFactory;
 
     // tag::readerwriterprocessor[]
     @Bean
@@ -49,8 +55,10 @@ public class BatchConfiguration {
 
 
     @Bean
-    public UserItemWriter writer() {
-        return new UserItemWriter();
+    public JpaItemWriter writer() {
+        JpaItemWriter<User> writer = new JpaItemWriter<>();
+        writer.setEntityManagerFactory(entityManagerFactory);
+        return writer;
     }
 
     @Bean
@@ -62,7 +70,7 @@ public class BatchConfiguration {
 
 
     @Bean
-    public Step step1(UserItemWriter writer) {
+    public Step step1(JpaItemWriter writer) {
         return stepBuilderFactory.get("step1")
                 .<User, User>chunk(10)
                 .reader(reader())
@@ -70,7 +78,6 @@ public class BatchConfiguration {
                 .writer(writer)
                 .build();
     }
-
 
 
 }
